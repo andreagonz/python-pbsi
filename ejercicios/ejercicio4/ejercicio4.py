@@ -27,4 +27,4 @@ def asigna_calificaciones():
     for b in becarios:
         becarios_obj.append(Becario(b, choice(calificaciones)))                            
 asigna_calificaciones()
-print(becarios_obj)
+print([str(b) for b in becarios_obj])
