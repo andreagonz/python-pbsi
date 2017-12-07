@@ -41,21 +41,20 @@ def aprobados_reprobados():
             aprobados.append(alumno)
         else:
             reprobados.append(alumno)
-    return (tuple(aprobados), tuple(reprobados))
+    return tuple(aprobados), tuple(reprobados)
 
 print aprobados_reprobados()
 
 def promedio():
     p = 0.0
-    i = 0
-    for alumno in calificacion_alumno:
-        p += calificacion_alumno[alumno]
-        i += 1
-    return p / i
+    calificaciones = calificacion_alumno.values()
+    for calif in calificaciones:
+        p += calif
+    return p / len(calificaciones)
 
 print promedio()
 
 def conjunto_calificaciones():
-    print set(calificacion_alumno.values())
+    return set(calificacion_alumno.values())
 
 print conjunto_calificaciones()
