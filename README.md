@@ -1,2 +1,3 @@
-# python-pbsi
-Repositorio para el curso de Programación en Python del Plan de Becarios en Seguridad Informática del CERT-UNAM
+# Programación en Python
+## Plan de Becarios en Seguridad Informática del UNAM-CERT
+### Andrea Itzel González Vargas

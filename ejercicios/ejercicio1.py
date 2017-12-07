@@ -5,11 +5,12 @@
 aprobados = []
 
 def aprueba_becario(nombre_completo):
+    nombre_completo = nombre_completo.upper()
     nombre_separado = nombre_completo.split()
     for n in nombre_separado:
-        if n.upper() in ['GERARDO', 'ALAN', 'GUADALUPE', 'RAFAEL', 'KARINA']:
+        if n in ['GERARDO', 'ALAN', 'GUADALUPE', 'RAFAEL', 'KARINA']:
             return False
-    aprobados.append(nombre_completo.upper())
+    aprobados.append(nombre_completo)
     aprobados.sort()
     return True
 
@@ -39,10 +40,11 @@ for b in becarios:
 def borrar_becario(becario):
     becario = becario.upper()
     b = becario in aprobados
-    if(b):
+    if b:
         aprobados.remove(becario)
     return b
 
-#print borrar_becario('VIVEROS CAMPOS ULISES')
-#xsprint(aprobados)
+#print aprobados
+#print borrar_becario('Viveros Campos Ulises')
+#print aprobados
 #print becarios
