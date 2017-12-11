@@ -79,8 +79,9 @@ def genera_constrasenas(archivo):
     map(lambda s: map(lambda x: contrasenas_lst.append(x), combinaciones_str(s, comb_simb_lst)), permutaciones_lst)
     return set(contrasenas_lst)
     
-if len(sys.argv) > 1:
-    archivo = sys.argv[1]
-    escribe_contrasenas(archivo, genera_constrasenas(archivo))
-else:
-    print "Uso: python tarea3.py <archivo.txt>"
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        archivo = sys.argv[1]
+        escribe_contrasenas(archivo, genera_constrasenas(archivo))
+    else:
+        sys.stderr.write("Uso: python tarea3.py <archivo.txt>")
