@@ -6,6 +6,7 @@ import sys
 import re
 import xml.etree.ElementTree as ET
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 def hashes(archivo):
     BUF_SIZE = 65536
@@ -102,6 +103,7 @@ def genera_reporte(hosts):
     salida += "Hosts que usan Nginx: %d\n" % servidores["nginx"]
     salida += "Hosts que usan Dionaea: %d\n" % servidores["honeypot"]
     salida += "Hosts que usan otro servicio: %d\n" % servidores["otro"]
+    grafica(servidores)
     return salida
             
 def escribe_reporte(archivo, salida):
@@ -124,6 +126,16 @@ def archivos_csv(hosts):
     genera_csv("hosts_honeypot.csv", "HostHoneypot", hosts_servidor(servidores, honeypot))
     genera_csv("hosts_dominio.csv", "HostConNombreDominio", hosts_dominio(hosts))
 
+def grafica(dicc):
+    labels = 'Apache', 'Nginx', 'Honeypot', 'Otro'
+    sizes = [dicc["apache"], dicc["nginx"], dicc["honeypot"], dicc["otro"]]
+    colors = ['gold', 'yellowgreen', 'lightcoral', 'lightskyblue']
+    plt.pie(sizes, labels=labels, colors=colors,
+            autopct='%1.1f%%', shadow=True, startangle=140) 
+    plt.axis('equal')
+    plt.title('Porcentaje de Servidores Web')
+    plt.savefig('grafica.svg')
+    
 if __name__ == '__main__':
     archivo = "nmap.xml"
     if len(sys.argv) > 1:

@@ -1,11 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #UNAM-CERT
+
 import sys
 import optparse
 from requests import get
 from requests.exceptions import ConnectionError
-
 
 def printError(msg, exit = False):
     sys.stderr.write('Error:\t%s\n' % msg)
@@ -17,7 +17,7 @@ def addOptions():
     parser.add_option('-v','--verbose', dest='verbose', default=None, action='store_true', help='If specified, prints detailed information during execution.')
     parser.add_option('-p','--port', dest='port', default='80', help='Port that the HTTP server is listening to.')
     parser.add_option('-s','--server', dest='server', default=None, help='Host that will be attacked.')
-    parser.add_option('-r','--report', dest='report', default='reporte.txt', help='File where the results will be reported.')
+    parser.add_option('-r','--report', dest='report', default='ej7_reporte.txt', help='File where the results will be reported.')
     parser.add_option('-U', '--user', dest='user', default=None, help='User that will be tested during the attack.')
     parser.add_option('-P', '--password', dest='password', default=None, help='Password that will be tested during the attack.')
     opts,args = parser.parse_args()
@@ -27,14 +27,12 @@ def checkOptions(options):
     if options.server is None:
         printError('Debes especificar un servidor a atacar.', True)
 
-
 def reportResults():
     pass
 
 def buildURL(server,port, protocol = 'http'):
     url = '%s://%s:%s' % (protocol,server,port)
     return url
-
 
 def makeRequest(host, user, password):
     try:
@@ -69,6 +67,8 @@ if __name__ == '__main__':
             for p in passwords:
                 if makeRequest(url, u, p):
                     s += 'CREDENCIALES ENCONTRADAS!: %s\t%s\n' % (u,p)
+        if not s:
+            s = "No se encontró nada"
         print s
         escribe_archivo(opts.report, s)        
     except Exception as e:
