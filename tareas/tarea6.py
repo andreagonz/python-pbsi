@@ -5,6 +5,7 @@
 # Se necesita correr pip2 install requests requests[socks] [--upgrade]
 
 import sys
+import re
 import optparse
 import requests
 from requests import get
@@ -72,18 +73,15 @@ def buildURL(server, port, protocol='http', tls=False):
     url = '%s://%s:%s' % (protocol, server, port)
     return url
 
-def makeRequest(host, user, password, verboso, digest, user_agent, tor):
+def makeRequest(host, user, password, verboso, digest, user_agent, tor_session):
     try:
         headers = {'User-Agent': user_agent}
         auth = HTTPDigestAuth(user, password) if digest else (user, password)
         response = None
-        if tor:
-            session = requests.session()
-            session.proxies = {'http':  'socks5://127.0.0.1:9050',
-                               'https': 'socks5://127.0.0.1:9050'}
-            response = session.get(host, auth=auth, headers=headers)
-        else:
+        if tor_session is None:
             response = get(host, auth=auth, headers=headers)
+        else:
+            response = tor_session.get(host, auth=auth, headers=headers)
         if verboso:
             print "Agente de usuario: %s" % user_agent
             print "Usuario: %s, Contraseña: %s, Respuesta: %s" % (user, password, str(response))
@@ -112,6 +110,13 @@ def get_users(user, user_list):
         return [user]
     return lista_archivo(user_list)
 
+
+def get_tor_session():
+    session = requests.session()
+    session.proxies = {'http':  'socks5://127.0.0.1:9050',
+                       'https': 'socks5://127.0.0.1:9050'}
+    return session
+
 if __name__ == '__main__':
     try:
         opts = addOptions()
@@ -120,14 +125,19 @@ if __name__ == '__main__':
         usuarios = get_users(opts.user, opts.user_list)
         passwords = get_passwords(opts.password, opts.password_list)
         tipo = "Digest" if opts.digest else "Basic"
+        tor_session = None
+        iprexp = r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}"
+        if opts.tor:
+            tor_session = get_tor_session()
+        ip_origen = tor_session.get("http://httpbin.org/ip").text if opts.tor else get("http://httpbin.org/ip").text
+        ip_origen = re.findall(iprexp, ip_origen)[0]
         s = ["URL destino: %s" % url,
              "Tipo de autenticación: %s" % tipo,
-             "Usando conexión a través de TOR: %s" % opts.tor
+             "Usando conexión a través de TOR: %s" % opts.tor,
+             "Dirección IP origen: %s" % str(ip_origen)
         ]
         if opts.verbose:
             print "\n".join(s)
-            if opts.tor:
-                print "Usando conexión a través de TOR"
         ua = 0
         i = 1
         for u in usuarios:
@@ -135,11 +145,11 @@ if __name__ == '__main__':
                 if i % opts.useragent == 0:
                     ua = (ua + 1) % len(user_agents)
                 i += 1
-                if makeRequest(url, u, p, opts.verbose, opts.digest, user_agents[ua], opts.tor):
+                if makeRequest(url, u, p, opts.verbose, opts.digest, user_agents[ua], tor_session):
                     s.append('CREDENCIALES ENCONTRADAS!: %s\t%s' % (u,p))
                     if opts.verbose:
                         print s[-1]
-        if len(s) == 3:
+        if len(s) == 4:
             s.append("No se encontró nada")
         reportResults('\n'.join(s), opts.report, opts.stdout)
     except Exception as e:
