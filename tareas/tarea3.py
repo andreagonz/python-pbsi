@@ -6,14 +6,25 @@ from itertools import permutations, combinations, combinations_with_replacement
 import re
 from random import random, randint
 
-lst_simb_esp = ['`', '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '-', '=', '{', '}', '|', '[', ']', '\\', ':', '"', ';', '\'', '<', '>', '?', ',', '.', '/', '', ' ']
+# Diccionario de caracteres cuyo valor representa una lista de los caracteres por los que se puede cambiar
 dicc_letras = {'a':['4','@'], 'i':['1', '!'], 's':['$','5'], 'e':['3'], 'o':['0'], '0':['o'], '1':['i', '!'], '4':['a','@'], '$':['5','s'], '5':['$','s'], '@':['a','4'], '!':['i','1'], '3':['e'], 't':['7'], '7':['t']}
+# Lista de símbolos a insertar entre la concatenación de palabras
 lst_simbolos = ['*', '_', '-', '.', '']
+# Lista de probabilidades con las que se modificará un carácter
 lst_probabilidades = [0.2, 0.5, 0.8]
+# Número máximo de palabras a combinar en una sóla contraseña (si es mayor a 2 salen números extremadamente grandes)
 COMB_MAX = 2
-#lst_simbolos = ['#', '*', '_', '-', '.', '', ' ']
     
 def aplica_funcion_lst(lst, fun):
+    """
+    Regresa una lista de cadenas a las que se les aplica la función fun.
+    Se utiliza lst_probabilidades para modificar cada carácter en cada palabra con cierta probabilidad.
+    Recibe:
+        lst (list) - Lista con cadenas a modificar
+        fun (function) - Función a aplicar a cada cadena
+    Regresa:
+        list - Lista de cadenas modificadas
+    """
     res = lst[:]
     for p in lst_probabilidades:
         for s in lst:
@@ -24,16 +35,42 @@ def aplica_funcion_lst(lst, fun):
     return res
 
 def cambia_simbolo_str(s, p):
+    """
+    Modifica cada carácter en la cadena s con probabilidad p, de acuerdo a dicc_letras.
+    Recibe:
+        s (str) - Cadena a modificar
+        p (float) - Probabilidad con la que se modifica cada carácter
+    Regresa:
+        str - Cadena modificada
+    """
     return ''.join(map(lambda x:
                        x if not dicc_letras.get(x, None) or random() >= p
                        else dicc_letras[x][randint(0, len(dicc_letras[x]) - 1)], s))
 
 def cambia_maymin_str(s, p):
+    """
+    Cambia a minúscula o mayúscula cada carácter en la cadena s, con probabilidad p.
+    Recibe:
+        s (str) - Cadena a modificar
+        p (float) - Probabilidad con la que se modifica cada carácter
+    Regresa:
+        str - Cadena modificada
+    """
     return ''.join(map(lambda x:
                        x if random() >= p
                        else str.swapcase(x), s))
 
 def combinaciones_str(s, comb_simb_lst):
+    """
+    Regresa un conjunto de palabras generadas a partir de ciertas modificaciones
+    posibles realizadas a la cadena s.
+    Recibe:
+        s (str) - Cadena a utilizar para generar palabras similares
+        comb_simb_lst (lst) - Lista de combinaciones de símbolos que se utilizarán para
+                                             llenar los posibles espacios en s
+    Regresa:
+        set - Conjunto de palabras generadas
+    """
     lst = []
     for l in comb_simb_lst[len(s.split()) - 1]:
         x = s
@@ -50,18 +87,31 @@ def combinaciones_str(s, comb_simb_lst):
     lst = aplica_funcion_lst(lst, cambia_simbolo_str)
     # Se cambia aleatoriamente a minúsculas o mayúculas por cada palabra
     lst = aplica_funcion_lst(lst, cambia_maymin_str)
-    # Insertar de lst_simb_esp aleatoriamente (tentativo)
-    # ...
     return set(lst + [x.swapcase() for x in lst])
 
 def escribe_contrasenas(archivo, contrasenas):
+    """
+    Escribe la lista de contraseñas recibida en un archivo.
+    Recibe:
+        archivo (str) - Nombre del archivo a crear
+        contrasenas (lst) - Lista de contrasenas a escribir
+    Regresa:
+        None
+    """
     archivo_nuevo = archivo[:archivo.rfind(".")] + "_contrasenas.txt"
     with open(archivo_nuevo, "w") as f:
         map(lambda x: f.write(x + "\n"), contrasenas)
-    # print contrasenas    
     print "Se generaron %d contraseñas" % len(contrasenas)
 
 def genera_constrasenas(archivo):
+    """
+    Genera un conjunto de contraseñas posibles a partir de una lista de
+    palabras guardadas en el archivo recibido.
+    Recibe:
+        archivo (str) - Nombre del archivo de contraseñas
+    Regresa:
+        set - Conjunto de contraseñas posibles
+    """
     f = open(archivo)
     palabras = f.readlines()
     f.close()
