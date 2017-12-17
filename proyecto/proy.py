@@ -22,6 +22,16 @@ def error(msg, exit=False):
         sys.exit(1)
 
 def reporta(msg, verboso, reporta=False):
+    """
+    Permite decidir si msg se va a imprimir en la salida estándar y si
+    se va a incluir en el reporte.
+    Recibe:
+        msg (str) - Mensaje a imprimir
+        verboso (bool) - Si es True, imprime msg en salida estándar.
+        reporta (bool) - Si es True, se guarda msg en la lista reporte
+    Regresa:
+        None
+    """
     if verboso:
         print(msg)
     if reporta:
@@ -34,27 +44,27 @@ def opciones():
         optparse.OptionParser - Objeto analizador de argumentos
     """
     parser = optparse.OptionParser()
-    parser.add_option('-v','--verboso', dest='verboso', default=False, action='store_true', help='If specified, prints detailed information during execution.')
-    parser.add_option('-c','--config', dest='config', default=None, help='File where the results will be reported, if not specified, results will default to standad output. In combination with -o, it will also print results to standard output.')
-    parser.add_option('-C','--cabeceras', dest='cabeceras', default=False, action='store_true', help='If specified, prints detailed information during execution.')
-    parser.add_option('-H','--metodos-http', dest='metodos', default=False, action='store_true', help='If specified, prints detailed information during execution.')
-    parser.add_option('-m','--correos', dest='correos', default=False, action='store_true', help='If specified, prints detailed information during execution.')
-    parser.add_option('-p','--puerto', dest='puerto', type='int',  default=-1, help='Port that the HTTP server is listening to.')
-    parser.add_option('-s','--servidor', dest='servidor', default=None, help='Host that will be attacked.')
-    parser.add_option('-r','--reporte', dest='reporte', default=None, help='File where the results will be reported, if not specified, results will default to standad output. In combination with -o, it will also print results to standard output.')
-    parser.add_option('-a','--agente', dest='agente', default=None, help='File where the results will be reported, if not specified, results will default to standad output. In combination with -o, it will also print results to standard output.')
-    parser.add_option('-A','--archivos-sensibles', dest='archivos', default=None, help='File where the results will be reported, if not specified, results will default to standad output. In combination with -o, it will also print results to standard output.')
-    parser.add_option('-M','--cms', dest='cms', default=False, action='store_true', help='If specified, prints detailed information during execution.')
-    parser.add_option('-t','--tls', dest='tls', default=False, action='store_true', help='If specified, HTTPS protocol will be used instead of default HTTP.')
-    parser.add_option('-T','--tor', dest='tor', default=False, action='store_true', help='If specified, requests will be done over TOR.')
+    parser.add_option('-v','--verboso', dest='verboso', default=False, action='store_true', help='Bandera que de ser usada, permite que se imprima en salida estándar información referente a la ejecución del programa.')
+    parser.add_option('-c','--config', dest='config', default=None, help='Archivo de configuración.')
+    parser.add_option('-C','--cabeceras', dest='cabeceras', default=False, action='store_true', help='Bandera que indica que se obtenga la versión del servidor y de PHP de la cabecera.')
+    parser.add_option('-H','--metodos-http', dest='metodos', default=False, action='store_true', help='Bandera que indica que se determine los métodos HTTP habilitados en el servidor.')
+    parser.add_option('-m','--correos', dest='correos', default=False, action='store_true', help='Bandera que indica que se extraiga la lista de correos del contenido.')
+    parser.add_option('-p','--puerto', dest='puerto', type='int',  default=-1, help='Puerto al que se realizarán las peticiones, de no ser especificado de utilizará el puerto 80, o el 443 en caso de utilizar -t.')
+    parser.add_option('-s','--servidor', dest='servidor', default=None, help='Servidor a ser analizado.')
+    parser.add_option('-r','--reporte', dest='reporte', default=None, help='Archivo en donde serán registrados los resultados obtenidos del análisis.')
+    parser.add_option('-a','--agente-usuario', dest='agente', default=None, help='Agente de usuario a ser utilizado para las peticiones.')
+    parser.add_option('-A','--archivos-sensibles', dest='archivos', default=None, help='De ser especificado se hará una búsqueda en el servidor de los archivos listados en este archivo.')
+    parser.add_option('-M','--cms', dest='cms', default=False, action='store_true', help='Bandera que indica que se obtenga el CMS utilizado por el servidor.')
+    parser.add_option('-t','--tls', dest='tls', default=False, action='store_true', help='Bandera que indica que se utilice el protocolo HTTPS en vez de HTTP.')
+    parser.add_option('-T','--tor', dest='tor', default=False, action='store_true', help='Bandera que indica que se realicen las peticiones a través de TOR.')
     opts, args = parser.parse_args()
     return opts
     
 def revisa_valores(valores):
     """
-    Revisa si hay algún error con las opciones recibidas.
+    Revisa si hay algún error en los valores recibidos.
     Recibe:
-        options (optparse.OptionParser) - Objeto con opciones ingresadas al ejecutar programa
+        valores (dict) - Diccionario con los valores a ser utilizados
     Regresa:
         None
     """
@@ -63,11 +73,10 @@ def revisa_valores(valores):
     
 def escribe_reporte(archivo, verboso):
     """
-    Realiza un reporte con los resultados obtenidos, los imprime en la salida estándar o ambos.
+    Guarda el reporte en un archivo.
     Recibe:
-        resultados (str) - Cadena con el reporte
         archivo (str) - Nombre del archivo a crear con el reporte
-        stdout (bool) - De ser True, se imprime resultados en salida estándar
+        verboso (bool) - De ser True se utiliza el modo verboso
     Regresa:
         None
     """
@@ -82,9 +91,10 @@ def genera_url(servidor, puerto, tls, verboso):
     """
     Regresa una cadena del url con la dirección IP, puerto y protocolos específicados.
     Recibe:
-        server (str) - Dirección IP del servidor
-        port (str) - Puerto a utilizar
-        protocol (str) - Protocolo a utilizar
+        servidor (str) - Dirección IP del servidor
+        puerto (str) - Puerto a utilizar
+        tls (str) - De ser True se utilizará el protocolo HTTPS en ves de HTTP
+        verboso (bool) - De ser True se utiliza el modo verboso
     Regresa:
         str - URL generada
     """
@@ -96,6 +106,16 @@ def genera_url(servidor, puerto, tls, verboso):
     return '%s://%s:%s' % (protocolo, servidor, puerto)
 
 def hacer_peticion(url, sesion, agente, verboso):
+    """
+    Hace una petición al servidor.
+    Recibe:
+        url (str) - URL a la cuál se hace la petición
+        sesion (requests.session) - Sesión a utilizar
+        agente (str) - Agente de usuario a utilizar
+        verboso (bool) - De ser True se utiliza el modo verboso
+    Regresa:
+        requests.models.Response - Respuesta a la petición
+    """
     try:
         reporta('Haciendo petición con método GET al servidor', verboso)
         if agente is not None:
@@ -108,16 +128,38 @@ def hacer_peticion(url, sesion, agente, verboso):
     return None
 
 def ip_origen(sesion, verboso):
+    """
+    Regresa la dirección IP desde la que se hacen las peticiones
+    Recibe:
+        sesion (requests.session) - Sesión a utilizar
+        verboso (bool) - De ser True se utiliza el modo verboso
+    Regresa:
+        str - Dirección IP origen
+    """
     reporta('Obteniendo dirección IP origen', verboso)
     return sesion.get('http://myexternalip.com/raw').text[:-1]
 
 def elemento_cebecera(peticion, llave, verboso):
+    """
+    Regresa el elemento de la cabecera expecificado
+    Recibe:
+        peticion (requests.models.Response) - Petición de la que se extraerá la cabecera
+        llave (str) - Elemento de la cabecera a obtener
+        verboso (bool) - De ser True se utiliza el modo verboso
+    Regresa:
+        str - Elemento buscado
+    """
     reporta("Extrayendo elemento '%s' de cabecera de petición" % llave, verboso)
     return peticion.headers.get(llave, "N/A")
 
 def obten_sesion(tor, verboso):
     """
-    Regresa una sesión
+    Regresa una sesión para realizar peticiones.
+    Recibe:
+        tor (bool) - De ser True se crea una sesión para usar TOR
+        verboso (bool) - De ser True se utiliza el modo verboso
+    Regresa:
+        sesión
     """
     if not tor:
         return requests
@@ -127,6 +169,16 @@ def obten_sesion(tor, verboso):
     return sesion
 
 def metodos_http(url, sesion, verboso):
+    """
+    Regresa los métodos HTTP habilitados en el servidor usando
+    fuerza bruta.
+    Recibe:
+        url (str) - URL a ser utilizada
+        sesion - Sesión a ser utilizada
+        verboso (bool) - De ser True se utiliza el modo verboso
+    Regresa:
+        list - Lista con métodos habilitados
+    """
     metodos = []
     reporta('Se intentará obtener métodos permitidos por fuerza bruta', verboso)
     metodos.append("GET")
@@ -151,7 +203,15 @@ def metodos_http(url, sesion, verboso):
     return metodos
 
 def obten_cms(peticion, verboso):
-    reporta('Obteniendo Content Management Service', verboso)
+    """
+    Regresa el nombre del Content Management System utilizado por el servidor.
+    Recibe:
+        peticion (requests.models.Response) - Petición cuyo contenido será analizado
+        verboso (bool) - De ser True se utiliza el modo verboso
+    Regresa:
+        str - Nombre de CMS
+    """
+    reporta('Obteniendo Content Management System', verboso)
     tree = html.fromstring(peticion.content)
     cms = tree.xpath("//meta[@name='generator']")
     if len(cms) > 0:
@@ -160,6 +220,15 @@ def obten_cms(peticion, verboso):
         return "N/A"
     
 def obten_metodos(url, sesion, verboso):
+    """
+    Regresa una lista con los métodos HTTP habilitados en el servidor.
+    Recibe:
+        url (str) - URL a ser utilizada
+        sesion - Sesión a ser utilizada
+        verboso (bool) - De ser True se utiliza el modo verboso
+    Regresa:
+        str - Métodos habilitados
+    """
     reporta('Obteniendo métodos HTTP permitidos', verboso)
     metodos = sesion.options(url).headers.get("Allow", None)
     if metodos is None:
@@ -168,11 +237,29 @@ def obten_metodos(url, sesion, verboso):
     return metodos
 
 def obten_correos(peticion, verboso):
+    """
+    Regresa una lista con los correos encontrados la página.
+    Recibe:
+        peticion (requests.models.Response) - Petición cuyo contenido será analizado
+        verboso (bool) - De ser True se utiliza el modo verboso
+    Regresa:
+        list - Lista con los correos
+    """
     correo_regexp = r"[a-zA-Z0-9.!#$%&’*+/=?^_`|~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*"
     reporta('Obteniendo correos en el contenido de la petición realizada', verboso)
     return re.findall(correo_regexp, peticion.text)
 
 def obten_bool(atributo, conf, op):
+    """
+    Regresa el valor del atributo booleano de acuerdo a su valor op
+    en las opciones de la terminal y el archivo de configuración conf
+    Recibe:
+        atributo (str) - Nombre del atributo
+        conf (dict) - Diccionario con los valores del archivo de configuración
+        op (bool) - Valor del atributo en las opciones de la terminal
+    Regresa:
+        bool - Valor final del atributo
+    """
     if op:
         return op
     res = False
@@ -183,6 +270,14 @@ def obten_bool(atributo, conf, op):
     return res
         
 def obten_valores(ops, conf):
+    """
+    Regresa un diccionario con los valores de los parámetros finales a ser utilizados en el programa.
+    Recibe:
+        ops (optparse.OptionParser) - Objeto con los valores de los parámetro obtenidos de la terminal
+        conf (dict) - Diccionario con los valores del archivo de configuración
+    Regresa:
+        dict - Diccionario con los valores de los parámetros
+    """
     valores = {}
     valores['reporte'] = ops.reporte if ops.reporte is not None else conf.get('reporte', 'reporte.txt')
     valores['agente'] = ops.agente if ops.agente is not None else conf.get('agente_usuario', None)
@@ -201,6 +296,13 @@ def obten_valores(ops, conf):
     return valores
 
 def leer_configuracion(archivo):
+    """
+    Lee el archivo de configuración y regresa un diccionario con los valores que éste indica.
+    Recibe:
+        archivo (str) - Nombre del archivo de configuración
+    Regresa:
+        dict - Diccionario con los valores de los parámetros
+    """
     res = {}
     try:
         config = configparser.ConfigParser()
@@ -211,6 +313,18 @@ def leer_configuracion(archivo):
     return res
 
 def obten_archivos(sesion, url, archivo, agente, verboso):
+    """
+    Regresa una lista con los archivos sensibles encontrados en el servidor,
+    los nombres de éstos se extraen de un archivo.
+    Recibe:
+        sesion - Sesion a utilizar para hacer las peticiones
+        url (str) - URL a utilizar        
+        archivo (str) - Nombre del archivo donde se listan los archivos sensibles a buscar
+        agente (str) - Agente de usuario a utilizar.
+        verboso (bool) - De ser True se utiliza el modo verboso
+    Regresa:
+        dict - Diccionario con los valores de los parámetros
+    """
     encontrados = []
     if url[-1] != '/':
         url = url + "/"
@@ -253,7 +367,7 @@ if __name__ == '__main__':
             http = "Métodos HTTP permitidos: %s" % obten_metodos(url, sesion, valores['verboso'])
             reporta(http, valores['verboso'], True)
         if valores['cms']:
-            cms = "Content Managment Service: %s" % obten_cms(peticion, valores['verboso'])
+            cms = "Content Management System: %s" % obten_cms(peticion, valores['verboso'])
             reporta(cms, valores['verboso'], True)
         if valores['correos']:
             correos = "Correos encontrados: %s" % ', '.join(obten_correos(peticion, valores['verboso']))

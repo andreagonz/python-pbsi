@@ -9,6 +9,6 @@ puerto = 8000
 modo_verboso = true
 metodos_http = true
 correos = true
-archivos_sensibles = true
+archivos_sensibles = archivos.txt
 cms = true
 tor = false
