@@ -260,7 +260,7 @@ def obten_bool(atributo, conf, op):
     Regresa:
         bool - Valor final del atributo
     """
-    if op:
+    if op or conf is None:
         return op
     res = False
     try:
@@ -279,10 +279,10 @@ def obten_valores(ops, conf):
         dict - Diccionario con los valores de los parámetros
     """
     valores = {}
-    valores['reporte'] = ops.reporte if ops.reporte is not None else conf.get('reporte', 'reporte.txt')
-    valores['agente'] = ops.agente if ops.agente is not None else conf.get('agente_usuario', None)
-    valores['servidor'] = ops.servidor if ops.servidor is not None else conf.get('servidor', None)
-    valores['archivos'] = ops.archivos if ops.archivos is not None else conf.get('archivos', None)
+    valores['reporte'] = ops.reporte if ops.reporte is not None or conf is None else conf.get('reporte', 'reporte.txt')
+    valores['agente'] = ops.agente if ops.agente is not None or conf is None else conf.get('agente_usuario', None)
+    valores['servidor'] = ops.servidor if ops.servidor is not None or conf is None else conf.get('servidor', None)
+    valores['archivos'] = ops.archivos if ops.archivos is not None or conf is None else conf.get('archivos', None)
     valores['verboso'] = obten_bool('modo_verboso', conf, ops.verboso)
     valores['cabeceras'] = obten_bool('cabeceras', conf, ops.cabeceras)
     valores['metodos'] = obten_bool('metodos_http', conf, ops.metodos)
@@ -290,9 +290,11 @@ def obten_valores(ops, conf):
     valores['cms'] = obten_bool('cms', conf, ops.cms)
     valores['tor'] = obten_bool('tor', conf, ops.tor)
     valores['tls'] = obten_bool('tls', conf, ops.tls)    
-    valores['puerto'] = ops.puerto if ops.puerto >= 0 else conf.getint('puerto', -1)
+    valores['puerto'] = ops.puerto if ops.puerto >= 0 or conf is None else conf.getint('puerto', -1)
     if valores['puerto'] < 0 or valores['puerto'] > 49151:
         valores['puerto'] = 443 if valores['tls'] else 80
+    if valores['reporte'] is None:
+        valores['reporte'] = 'reporte.txt'
     return valores
 
 def leer_configuracion(archivo):
@@ -348,7 +350,7 @@ def obten_archivos(sesion, url, archivo, agente, verboso):
 if __name__ == '__main__':
     try:
         ops = opciones()
-        config = {} if ops.config is None else leer_configuracion(ops.config)
+        config = None if ops.config is None else leer_configuracion(ops.config)
         valores = obten_valores(ops, config)
         revisa_valores(valores)
         sesion = obten_sesion(valores['tor'], valores['verboso'])
