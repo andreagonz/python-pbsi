@@ -1,0 +1,14 @@
+[PARAMETROS]
+
+tls = false
+servidor = google.com
+cabeceras = true
+reporte = resultados.txt
+agente_usuario = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
+puerto = 8000
+modo_verboso = true
+metodos_http = true
+correos = true
+archivos_sensibles = true
+cms = true
+tor = false
