@@ -43,7 +43,7 @@ def opciones():
     parser.add_option('-s','--servidor', dest='servidor', default=None, help='Host that will be attacked.')
     parser.add_option('-r','--reporte', dest='reporte', default=None, help='File where the results will be reported, if not specified, results will default to standad output. In combination with -o, it will also print results to standard output.')
     parser.add_option('-a','--agente', dest='agente', default=None, help='File where the results will be reported, if not specified, results will default to standad output. In combination with -o, it will also print results to standard output.')
-    parser.add_option('-A','--archivos-sensibles', dest='archivos', default=False, action='store_true', help='If specified, prints detailed information during execution.')
+    parser.add_option('-A','--archivos-sensibles', dest='archivos', default=None, help='File where the results will be reported, if not specified, results will default to standad output. In combination with -o, it will also print results to standard output.')
     parser.add_option('-M','--cms', dest='cms', default=False, action='store_true', help='If specified, prints detailed information during execution.')
     parser.add_option('-t','--tls', dest='tls', default=False, action='store_true', help='If specified, HTTPS protocol will be used instead of default HTTP.')
     parser.add_option('-T','--tor', dest='tor', default=False, action='store_true', help='If specified, requests will be done over TOR.')
@@ -74,7 +74,7 @@ def escribe_reporte(archivo, verboso):
     reporta('Escribiendo reporte en archivo %s' % archivo, verboso)
     try:
         with open(archivo, "w") as f:
-            f.write('\n'.join(reporte))
+            f.write('\n'.join(reporte) + "\n")
     except:
         error('Hubo un error al escribir reporte en el archivo %s' % archivo)
 
@@ -95,14 +95,14 @@ def genera_url(servidor, puerto, tls, verboso):
         return '%s://%s:%d%s' % (protocolo, servidor[:i], puerto, servidor[i:])
     return '%s://%s:%s' % (protocolo, servidor, puerto)
 
-def hacer_peticion(host, sesion, agente, verboso):
+def hacer_peticion(url, sesion, agente, verboso):
     try:
         reporta('Haciendo petición con método GET al servidor', verboso)
         if agente is not None:
             reporta('Usando agente de usuario %s' % agente, verboso)
             headers = {'User-Agent': agente}
-            return sesion.get(host, headers=headers)
-        return sesion.get(host)
+            return sesion.get(url, headers=headers)
+        return sesion.get(url)
     except ConnectionError:
         error('Error en la conexion, tal vez el servidor no esta arriba.',True)
     return None
@@ -126,27 +126,27 @@ def obten_sesion(tor, verboso):
     sesion.proxies = {'http':  'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
     return sesion
 
-def metodos_http(host, sesion, verboso):
+def metodos_http(url, sesion, verboso):
     metodos = []
     reporta('Se intentará obtener métodos permitidos por fuerza bruta', verboso)
     metodos.append("GET")
     reporta('Realizando petición con método HEAD', verboso)
-    if sesion.head(host).status_code < 400:
+    if sesion.head(url).status_code < 400:
         metodos.append("HEAD")
     reporta('Realizando petición con método POST', verboso)
-    if sesion.post(host).status_code < 400:
+    if sesion.post(url).status_code < 400:
         metodos.append("POST")
     reporta('Realizando petición con método PUT', verboso)
-    if sesion.put(host).status_code < 400:
+    if sesion.put(url).status_code < 400:
         metodos.append("PUT")
     reporta('Realizando petición con método DELETE', verboso)
-    if sesion.delete(host).status_code < 400:
+    if sesion.delete(url).status_code < 400:
         metodos.append("DELETE")
     reporta('Realizando petición con método OPTIONS', verboso)
-    if sesion.options(host).status_code < 400:
+    if sesion.options(url).status_code < 400:
         metodos.append("OPTIONS")
     reporta('Realizando petición con método PATCH', verboso)
-    if sesion.patch(host).status_code < 400:
+    if sesion.patch(url).status_code < 400:
         metodos.append("PATCH")
     return metodos
 
@@ -159,12 +159,12 @@ def obten_cms(peticion, verboso):
     else:
         return "N/A"
     
-def obten_metodos(host, sesion, verboso):
+def obten_metodos(url, sesion, verboso):
     reporta('Obteniendo métodos HTTP permitidos', verboso)
-    metodos = sesion.options(host).headers.get("Allow", None)
+    metodos = sesion.options(url).headers.get("Allow", None)
     if metodos is None:
         reporta('No se pudo extraer métodos permitidos usando OPTIONS', verboso)
-        metodos = ','.join(metodos_http(host, sesion, verboso))
+        metodos = ','.join(metodos_http(url, sesion, verboso))
     return metodos
 
 def obten_correos(peticion, verboso):
@@ -187,11 +187,11 @@ def obten_valores(ops, conf):
     valores['reporte'] = ops.reporte if ops.reporte is not None else conf.get('reporte', 'reporte.txt')
     valores['agente'] = ops.agente if ops.agente is not None else conf.get('agente_usuario', None)
     valores['servidor'] = ops.servidor if ops.servidor is not None else conf.get('servidor', None)
+    valores['archivos'] = ops.archivos if ops.archivos is not None else conf.get('archivos', None)
     valores['verboso'] = obten_bool('modo_verboso', conf, ops.verboso)
     valores['cabeceras'] = obten_bool('cabeceras', conf, ops.cabeceras)
     valores['metodos'] = obten_bool('metodos_http', conf, ops.metodos)
     valores['correos'] = obten_bool('correos', conf, ops.correos)
-    valores['archivos'] = obten_bool('archivos_sensibles', conf, ops.archivos)
     valores['cms'] = obten_bool('cms', conf, ops.cms)
     valores['tor'] = obten_bool('tor', conf, ops.tor)
     valores['tls'] = obten_bool('tls', conf, ops.tls)    
@@ -209,6 +209,27 @@ def leer_configuracion(archivo):
     except:
         error("Hubo un problema al leer el archivo de configuración", True)
     return res
+
+def obten_archivos(sesion, url, archivo, agente, verboso):
+    encontrados = []
+    if url[-1] != '/':
+        url = url + "/"
+    try:
+        with open(archivo) as f:
+            archivos = [x[:-1] for x in f.readlines()]
+            for a in archivos:
+                path = '%s%s' % (url, a)
+                reporta('Buscando archivo %s' % path, valores['verboso'])
+                peticion = hacer_peticion(path, sesion, agente, verboso)
+                historial = [str(x.status_code)[0] for x in peticion.history]
+                if peticion.status_code == 200 and '3' not in historial:
+                    reporta('Archivo %s encontrado' % path, valores['verboso'])
+                    encontrados.append(a)
+                else:
+                    reporta('Archivo %s no encontrado' % path, valores['verboso'])
+    except IOError:
+        error('Hubo un problema al abrir archivo %s' % archivo)
+    return encontrados
     
 if __name__ == '__main__':
     try:
@@ -221,7 +242,7 @@ if __name__ == '__main__':
         ip = "Dirección IP origen: %s" % ip_origen(sesion, valores['verboso'])
         reporta(ip, valores['verboso'], True)
         urld = "URL destino: %s" % url
-        reporta(urld, valores['verboso'], True)
+        reporta(urld, valores['verboso'], True)        
         peticion = hacer_peticion(url, sesion, valores['agente'], valores['verboso'])
         if valores['cabeceras']:
             serv = "Versión servidor: %s" % elemento_cebecera(peticion, "Server", valores['verboso'])
@@ -237,8 +258,10 @@ if __name__ == '__main__':
         if valores['correos']:
             correos = "Correos encontrados: %s" % ', '.join(obten_correos(peticion, valores['verboso']))
             reporta(correos, valores['verboso'], True)
+        if valores['archivos'] is not None:
+            archivos = "Archivos sensibles encontrados: %s" % ', '.join(obten_archivos(sesion, url, valores['archivos'], valores['agente'], valores['verboso']))
+            reporta(archivos, valores['verboso'], True)
         escribe_reporte(valores['reporte'], valores['verboso'])
     except Exception as e:
         error('Ocurrió un error inesperado')
         error(e, True)
-
