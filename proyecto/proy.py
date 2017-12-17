@@ -355,10 +355,10 @@ if __name__ == '__main__':
         revisa_valores(valores)
         sesion = obten_sesion(valores['tor'], valores['verboso'])
         url = genera_url(valores['servidor'], valores['puerto'], valores['tls'], valores['verboso'])
-        ip = "Dirección IP origen: %s" % ip_origen(sesion, valores['verboso'])
-        reporta(ip, valores['verboso'], True)
         urld = "URL destino: %s" % url
         reporta(urld, valores['verboso'], True)        
+        ip = "Dirección IP origen: %s" % ip_origen(sesion, valores['verboso'])
+        reporta(ip, valores['verboso'], True)
         peticion = hacer_peticion(url, sesion, valores['agente'], valores['verboso'])
         if valores['cabeceras']:
             serv = "Versión servidor: %s" % elemento_cebecera(peticion, "Server", valores['verboso'])
