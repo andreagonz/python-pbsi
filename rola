@@ -1,6 +1,0 @@
-<?php
-
-system("/usr/bin/ls"); 
-
-?>
-
